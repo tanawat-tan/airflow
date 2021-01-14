@@ -19,6 +19,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+
 # User and group of airflow user
 uid: 50000
 gid: 50000
@@ -28,15 +29,24 @@ gid: 50000
 airflowHome: "/opt/airflow"
 
 # Default airflow repository -- overrides all the specific images below
-defaultAirflowRepository: apache/airflow
+defaultAirflowRepository: nexus.tdg-analytics-platform.io/docker-registry/airflow
 
 # Default airflow tag to deploy
-defaultAirflowTag: 2.0.0
+defaultAirflowTag: 2.0.0-python3.8
 
 
 # Select certain nodes for airflow pods.
 nodeSelector: {}
-affinity: {}
+#affinity: {}
+affinity: 
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: nodetype
+          operator: In
+          values:
+          - kafkanode
 tolerations: []
 
 # Add common labels to all objects and pods defined in this chart.
@@ -148,14 +158,27 @@ images:
     tag: airflow-pgbouncer-exporter-2020.09.25-0.5.0
     pullPolicy: IfNotPresent
   gitSync:
-    repository: k8s.gcr.io/git-sync
-    tag: v3.1.6
-    pullPolicy: IfNotPresent
+    repository: nexus.tdg-analytics-platform.io/docker-registry/git-sync-airflow
+    tag: 1.0.0
+    #repository: k8s.gcr.io/git-sync
+    #tag: v3.1.1
+    pullPolicy: Always
 
 # Environment variables for all airflow containers
-env: []
+#env: []
 # - name: ""
 #   value: ""
+env:
+- name: "HTTP_PROXY"
+  value: "http://mtg8-tapproxy.true.th:3128/"
+- name:  "HTTPS_PROXY"
+  value: "http://mtg8-tapproxy.true.th:3128/"
+#- name:  "http_proxy"
+#  value: "http://10.101.211.48:3128/"
+#- name:  "https_proxy"
+#  value: "http://10.101.211.48:3128/"
+#- name:  "no_proxy"
+#  value: "localhost,127.0.0.1,localaddress,.svc.cluster.local,.dev.tap,10.101.211.0/24"
 
 # Secrets for all airflow containers
 secret: []
@@ -169,7 +192,7 @@ secret: []
 #    * key (can be templated) is the the name the secret that will be created
 #    * value: an object with the standard 'data' or 'stringData' key (or both).
 #          The value associated with those keys must be a string (can be templated)
-extraSecrets: {}
+#extraSecrets: {}
 # eg:
 # extraSecrets:
 #   {{ .Release.Name }}-airflow-connections:
@@ -181,6 +204,15 @@ extraSecrets: {}
 #   {{ .Release.Name }}-other-secret-name-suffix: |
 #     data: |
 #        ...
+extraSecrets: 
+  airflow-airflow-connections:
+    stringData: |
+      AIRFLOW_CONN_S3_LOGS: 's3://AKIAIOSFODNN7EXAMPLE/wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY@minio.airflow2-smileball.svc.cluster.local:9000/s3://airflow/logs?host=http://minio.airflow2-smileball.svc.cluster.local:9000&aws_access_key_id=AKIAIOSFODNN7EXAMPLE&aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY&s3_config_format=aws&region_name=us-east-1'
+
+#type: 's3'
+#extra: "{\"host\": \"http://10.101.211.49:9878\",\"aws_access_key_id\":\"airflow@DEV.TAP\",\"aws_secret_access_key\":\"2e069e78522ad32d76f8b6ab89ed2cdaf7a354690f329bf273f1003c7b4b29b9\",\"s3_config_format\": \"aws\",\"region_name\": \"us-west-1\"}"
+#extra: "{\"host\": \"http://minio.airflow.svc.cluster.local:9000\",\"aws_access_key_id\":\"AKIAIOSFODNN7EXAMPLE\",\"aws_secret_access_key\":\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\",\"s3_config_format\": \"aws\",\"region_name\": \"us-east-1\"}"
+#extra: "{\"host\": \"http://10.101.211.37:9878\",\"aws_access_key_id\":\"airflow@DEV.TAP\",\"aws_secret_access_key\":\"2e069e78522ad32d76f8b6ab89ed2cdaf7a354690f329bf273f1003c7b4b29b9\",\"s3_config_format\": \"aws\",\"region_name\": \"us-west-1\"}"
 
 # Extra ConfigMaps that will be managed by the chart
 # (You can use them with extraEnv or extraEnvFrom or some of the extraVolumes values).
@@ -188,38 +220,50 @@ extraSecrets: {}
 #    * key (can be templated) is the the name the configmap that will be created
 #    * value: an object with the standard 'data' key.
 #          The value associated with this keys must be a string (can be templated)
-extraConfigMaps: {}
+#extraConfigMaps: {}
 # eg:
-# extraConfigMaps:
-#   {{ .Release.Name }}-airflow-variables:
-#     data: |
-#       AIRFLOW_VAR_HELLO_MESSAGE: "Hi!"
-#       AIRFLOW_VAR_KUBERNETES_NAMESPACE: "{{ .Release.Namespace }}"
+#extraConfigMaps: 
+#  {{ .Release.Name }}-airflow-variables:
+#    data: |
+#      AIRFLOW_VAR_HELLO_MESSAGE: "Hi!"
+#      AIRFLOW_VAR_KUBERNETES_NAMESPACE: "{{ .Release.Namespace }}"
+
 
 # Extra env 'items' that will be added to the definition of airflow containers
 # a string is expected (can be templated).
-extraEnv: ~
+#extraEnv: ~
 # eg:
 # extraEnv: |
 #   - name: PLATFORM
 #     value: FR
+extraEnv: |
+  - name: "HTTP_PROXY"
+    value: "http://mtg8-tapproxy.true.th:3128/"
+  - name:  "HTTPS_PROXY"
+    value: "http://mtg8-tapproxy.true.th:3128/"
+  - name:  "http_proxy"
+    value: "http://mtg8-tapproxy.true.th:3128/"
+  - name:  "https_proxy"
+    value: "http://mtg8-tapproxy.true.th:3128/"
+  - name:  "no_proxy"
+    value: "localhost, 127.0.0.1, localaddress,.svc.cluster.local,tap.true.th,10.101.0.0/16,10.201.0.0/16"
 
 # Extra envFrom 'items' that will be added to the definition of airflow containers
 # A string is expected (can be templated).
-extraEnvFrom: ~
+#extraEnvFrom: ~
 # eg:
-# extraEnvFrom: |
-#   - secretRef:
-#       name: '{{ .Release.Name }}-airflow-connections'
-#   - configMapRef:
-#       name: '{{ .Release.Name }}-airflow-variables'
+extraEnvFrom: |
+  - secretRef:
+      name: 'airflow-airflow-connections'
 
-# Airflow database & redis config
+#  - configMapRef:
+#      name: '{{ .Release.Name }}-airflow-variables'
+
+# Airflow database config
 data:
   # If secret names are provided, use those secrets
   metadataSecretName: ~
   resultBackendSecretName: ~
-  brokerUrlSecretName: ~
 
   # Otherwise pass connection values in
   metadataConnection:
@@ -236,10 +280,9 @@ data:
     port: 5432
     db: postgres
     sslmode: disable
-  brokerUrl: ~
 
 # Fernet key settings
-fernetKey: ~
+fernetKey: "7T512UXSSmBOkpWimFHIVb8jK6lfmSAvx4mO6Arehnc="
 fernetKeySecretName: ~
 
 
@@ -321,7 +364,7 @@ workers:
     # Volume size for worker StatefulSet
     size: 100Gi
     # If using a custom storageClass, pass name ref to all statefulSets here
-    storageClassName:
+    storageClassName: 'acs-abs'
     # Execute init container to chown log directory.
     # This is currently only needed in KinD, due to usage
     # of local-path provisioner.
@@ -350,11 +393,6 @@ workers:
   # Mount additional volumes into worker.
   extraVolumes: []
   extraVolumeMounts: []
-
-  # Select certain nodes for airflow worker pods.
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
 
 # Airflow scheduler settings
 scheduler:
@@ -391,11 +429,6 @@ scheduler:
   # Mount additional volumes into scheduler.
   extraVolumes: []
   extraVolumeMounts: []
-
-  # Select certain nodes for airflow scheduler pods.
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
 
 # Airflow webserver settings
 webserver:
@@ -443,7 +476,7 @@ webserver:
   # This will be mounted into the Airflow Webserver as a custom
   # webserver_config.py. You can bake a webserver_config.py in to your image
   # instead
-  webserverConfig: ~
+  #webserverConfig: ~
   # webserverConfig: |
   #   from airflow import configuration as conf
 
@@ -452,23 +485,106 @@ webserver:
 
   #   # Flask-WTF flag for CSRF
   #   CSRF_ENABLED = True
+  webserverConfig: |
+    import os
+    from flask_appbuilder.security.manager import AUTH_LDAP
+    # from flask_appbuilder.security.manager import AUTH_OAUTH
+    # from flask_appbuilder.security.manager import AUTH_OID
+    # from flask_appbuilder.security.manager import AUTH_REMOTE_USER
+    
+    from airflow.configuration import conf
+    
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    
+    # The SQLAlchemy connection string.
+    SQLALCHEMY_DATABASE_URI = conf.get('core', 'SQL_ALCHEMY_CONN')
+    
+    # Flask-WTF flag for CSRF
+    CSRF_ENABLED = True
+    
+    # ----------------------------------------------------
+    # AUTHENTICATION CONFIG
+    # ----------------------------------------------------
+    # For details on how to set up each of the following authentication, see
+    # http://flask-appbuilder.readthedocs.io/en/latest/security.html# authentication-methods
+    # for details.
+    
+    # The authentication type
+    # AUTH_OID : Is for OpenID
+    # AUTH_DB : Is for database
+    # AUTH_LDAP : Is for LDAP
+    # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
+    # AUTH_OAUTH : Is for OAuth
+    AUTH_TYPE = AUTH_LDAP
+    
+    # Uncomment to setup Full admin role name
+    AUTH_ROLE_ADMIN = 'Admin'
+    
+    # Uncomment to setup Public role name, no authentication needed
+    AUTH_ROLE_PUBLIC = 'Public'
+    
+    # Will allow user self registration
+    AUTH_USER_REGISTRATION = True
+    
+    # The default user self registration role
+    AUTH_USER_REGISTRATION_ROLE = "Admin"
+    
+    # When using OAuth Auth, uncomment to setup provider(s) info
+    # Google OAuth example:
+    # OAUTH_PROVIDERS = [{
+    #   'name':'google',
+    #     'whitelist': ['@YOU_COMPANY_DOMAIN'],  # optional
+    #     'token_key':'access_token',
+    #     'icon':'fa-google',
+    #         'remote_app': {
+    #             'base_url':'https://www.googleapis.com/oauth2/v2/',
+    #             'request_token_params':{
+    #                 'scope': 'email profile'
+    #             },
+    #             'access_token_url':'https://accounts.google.com/o/oauth2/token',
+    #             'authorize_url':'https://accounts.google.com/o/oauth2/auth',
+    #             'request_token_url': None,
+    #             'consumer_key': CONSUMER_KEY,
+    #             'consumer_secret': SECRET_KEY,
+    #         }
+    # }]
+    
+    # When using LDAP Auth, setup the ldap server
+    # Prod
+    AUTH_LDAP_SERVER = "ldap://mtg8-mt-02.tap.true.th:389"
+    AUTH_LDAP_SEARCH = "cn=users,cn=accounts,dc=tap,dc=true,dc=th"
+    AUTH_LDAP_BIND_USER = "uid=airflow_bind_user,cn=users,cn=accounts,dc=tap,dc=true,dc=th"
+    AUTH_LDAP_BIND_PASSWORD = "npENNTjeRyF2TezG"
+    AUTH_LDAP_UID_FIELD = "uid"
+    AUTH_LDAP_USE_TLS = False
+    AUTH_LDAP_ALLOW_SELF_SIGNED = False
+    AUTH_LDAP_TLS_CACERTFILE = ''  
+
+    # dev
+    #AUTH_LDAP_SERVER = "ldap://10.201.186.37:389"
+    #AUTH_LDAP_SEARCH = "cn=users,cn=accounts,dc=DEV,dc=TAP"
+    #AUTH_LDAP_BIND_USER = "uid=admin,cn=users,cn=accounts,dc=DEV,dc=TAP"
+    #AUTH_LDAP_BIND_PASSWORD = "pass99word"
+    #AUTH_LDAP_UID_FIELD = "uid"
+    #AUTH_LDAP_USE_TLS = False
+    #AUTH_LDAP_ALLOW_SELF_SIGNED = False
+    #AUTH_LDAP_TLS_CACERTFILE = ''    
 
   service:
     type: ClusterIP
+    #type: LoadBalancer
+    #externalPort: 8080
+    #loadBalancerIP: "10.201.186.246"
     ## service annotations
     annotations: {}
+    #  metallb.universe.tf/address-pool: default
 
   # Annotations to add to webserver kubernetes service account.
   serviceAccountAnnotations: {}
 
-  # Select certain nodes for airflow webserver pods.
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
-
 # Flower settings
 flower:
-  # Additional network policies as needed
+  # Additional network policies as neededd
   extraNetworkPolicies: []
   resources: {}
   #   limits:
@@ -488,11 +604,6 @@ flower:
   service:
     type: ClusterIP
 
-  # Select certain nodes for airflow flower pods.
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
-
 # Statsd settings
 statsd:
   enabled: true
@@ -508,11 +619,6 @@ statsd:
 
   service:
     extraAnnotations: {}
-
-  # Select certain nodes for statsd pods.
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
 
 # Pgbouncer settings
 pgbouncer:
@@ -568,14 +674,7 @@ pgbouncer:
     cert: ~
     key: ~
 
-  # Select certain nodes for pgbouncer pods.
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
-
-# Configuration for the redis provisioned by the chart
 redis:
-  enabled: true
   terminationGracePeriodSeconds: 600
 
   persistence:
@@ -594,21 +693,17 @@ redis:
   #   cpu: 100m
   #   memory: 128Mi
 
-  # If set use as redis secret. Make sure to also set data.brokerUrlSecretName value.
+  # If set use as redis secret
   passwordSecretName: ~
+  brokerURLSecretName: ~
 
   # Else, if password is set, create secret with it,
-  # Otherwise a new password will be generated on install
+  # else generate a new one on install
   password: ~
 
   # This setting tells kubernetes that its ok to evict
   # when it wants to scale a node down.
   safeToEvict: true
-
-  # Select certain nodes for redis pods.
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
 
 # Auth secret for a private registry
 # This is used if pulling airflow images from a private registry
@@ -662,18 +757,38 @@ cleanup:
   # Run every 15 minutes
   schedule: "*/15 * * * *"
 
-  # Select certain nodes for airflow cleanup pods.
-  nodeSelector: {}
-  affinity: {}
-  tolerations: []
-
 # Configuration for postgresql subchart
 # Not recommended for production
 postgresql:
   enabled: true
+  #global:
+  #  storageClass: acs-abs
   postgresqlPassword: postgres
   postgresqlUsername: postgres
-
+  service:
+  #port: 5432
+  #nodeSelector: {"csi-type": "nutanix"}
+  # nodeAffinity:
+  master:
+    nodeSelector: {"csi-type": "nutanix"}
+    affinity:
+#      nodeAffinity:
+#        requiredDuringSchedulingIgnoredDuringExecution:
+#          nodeSelectorTerms:
+#          - matchExpressions:
+#            - key: nodetype
+#              operator: In
+#              values:
+#              - gpu
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: "csi-type"
+              operator: In
+              values:
+              - nutanix
+#
 # Config settings to go into the mounted airflow.cfg
 #
 # Please note that these values are passed through the `tpl` function, so are
@@ -689,15 +804,29 @@ config:
     load_examples: 'False'
     executor: '{{ .Values.executor }}'
     # For Airflow 1.10, backward compatibility
-    colored_console_log: 'False'
-    remote_logging: '{{- ternary "True" "False" .Values.elasticsearch.enabled }}'
+    colored_console_log: 'True'
+    remote_logging: 'True'
+    #remote_logging: '{{- ternary "True" "False" .Values.elasticsearch.enabled }}'
+    load_default_connections: 'True'
   # Authentication backend used for the experimental API
   api:
     auth_backend: airflow.api.auth.backend.deny_all
   logging:
     remote_logging: '{{- ternary "True" "False" .Values.elasticsearch.enabled }}'
-    colored_console_log: 'False'
-    logging_level: DEBUG
+    colored_console_log: 'True'
+    logging_level: INFO
+    base_log_folder: '/opt/airflow/logs'
+    remote_log_conn_id: 's3-tap'
+    google_key_path: ''
+    remote_base_log_folder: 's3://airflow/logs'
+    encrypt_s3_logs: 'False'
+    fab_logging_level: 'WARN'
+    colored_log_format: '[%%(blue)s%%(asctime)s%%(reset)s] {%%(blue)s%%(filename)s:%%(reset)s%%(lineno)d} %%(log_color)s%%(levelname)s%%(reset)s - %%(log_color)s%%(message)s%%(reset)s'
+    colored_formatter_class: 'airflow.utils.log.colored_log.CustomTTYColoredFormatter'
+    task_log_prefix_template: ''
+    dag_processor_manager_log_location: '/opt/airflow/logs/dag_processor_manager/dag_processor_manager.log'
+    task_log_reader: 'task'
+    remote_logging: 'True'
   metrics:
     statsd_on: '{{ ternary "True" "False" .Values.statsd.enabled }}'
     statsd_port: 9125
@@ -705,17 +834,19 @@ config:
     statsd_host: '{{ printf "%s-statsd" .Release.Name }}'
   webserver:
     enable_proxy_fix: 'True'
+    expose_config: 'True'
     rbac: 'True'
   celery:
     default_queue: celery
   scheduler:
     scheduler_heartbeat_sec: 5
-    # statsd params included for Airflow 1.10 backward compatibility; moved to [metrics] in 2.0
+    # For Airflow 1.10, backward compatibility
     statsd_on: '{{ ternary "True" "False" .Values.statsd.enabled }}'
     statsd_port: 9125
     statsd_prefix: airflow
     statsd_host: '{{ printf "%s-statsd" .Release.Name }}'
-    # `run_duration` included for Airflow 1.10 backward compatibility; removed in 2.0.
+    # Restart Scheduler every 41460 seconds (11 hours 31 minutes)
+    # The odd time is chosen so it is not always restarting on the same "hour" boundary
     run_duration: 41460
   elasticsearch:
     json_format: 'True'
@@ -736,11 +867,15 @@ config:
     pod_template_file: '{{ include "airflow_pod_template_file" . }}/pod_template_file.yaml'
     worker_container_repository: '{{ .Values.images.airflow.repository | default .Values.defaultAirflowRepository }}'
     worker_container_tag: '{{ .Values.images.airflow.tag | default .Values.defaultAirflowTag }}'
-    delete_worker_pods: 'True'
+    delete_worker_pods: 'False'
+    #multi_namespace_mode: 'True'
     multi_namespace_mode: '{{ if .Values.multiNamespaceMode }}True{{ else }}False{{ end }}'
+
+    
 # yamllint enable rule:line-length
 
-multiNamespaceMode: false
+multiNamespaceMode: true
+#multiNamespaceMode: false
 
 podTemplate: ~
 
@@ -758,22 +893,22 @@ dags:
     ## the name of an existing PVC to use
     existingClaim: ~
   gitSync:
-    enabled: false
+    enabled: true
     # git repo clone url
     # ssh examples ssh://git@github.com/apache/airflow.git
     # git@github.com:apache/airflow.git
     # https example: https://github.com/apache/airflow.git
-    repo: https://github.com/apache/airflow.git
-    branch: v1-10-stable
+    repo: https://github.com/tdg-analytics-platform/airflow2-tap-smileball-dags.git
+    branch: main
     rev: HEAD
     root: "/git"
     dest: "repo"
     depth: 1
     # the number of consecutive failures allowed before aborting
-    maxFailures: 0
+    maxFailures: 1
     # subpath within the repo where dags are located
     # should be "" if dags are at repo root
-    subPath: "tests/dags"
+    subPath: ""
     # if your repo needs a user name password
     # you can load them to a k8s secret like the one below
     #   ---
@@ -787,6 +922,7 @@ dags:
     # and specify the name of the secret below
     #
     # credentialsSecret: git-credentials
+    credentialsSecret: airflow-secret
     #
     #
     # If you are using an ssh clone url, you can load
@@ -812,3 +948,4 @@ dags:
     wait: 60
     containerName: git-sync
     uid: 65533
+
